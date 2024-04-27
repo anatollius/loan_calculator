@@ -123,7 +123,7 @@ def _handle_edit_existing_input():
     end_date = _get_user_value(
         lambda: date.fromisoformat(input("End date [YYYY-MM-DD]: "))
     )
-    loan_amount = _get_user_value(lambda: float(input("Loan amount (decimal): ")))
+    loan_amount = _get_user_value(lambda: float(input("Loan amount: ")))
     loan_currency = _get_user_value(lambda: _get_user_currency())
     base_interest_rate = _get_user_value(lambda: float(input("Base interest rate: ")))
     margin = _get_user_value(lambda: float(input("Margin: ")))
@@ -192,14 +192,15 @@ def _get_request_id_from_user() -> int:
 def _calculate_output(input_data: Input) -> Output:
     daily_base_interest = _get_daily_base_interest(input_data)
     daily_total_interest = _get_daily_total_interest(input_data)
-    total_days = _get_days_since_start(input_data.start_date, input_data.end_date)
+    days_since_start = _get_days_since_start(input_data)
+    total_days = _get_total_loan_days(input_data)
     total_interest = _get_total_interest(daily_total_interest, total_days)
 
     return Output(
         daily_base_interest=daily_base_interest,
         daily_total_interest=daily_total_interest,
         accrual_date=input_data.start_date,
-        days_since_start=total_days,
+        days_since_start=days_since_start,
         total_interest=total_interest,
         loan_currency=input_data.loan_currency,
     )
@@ -217,8 +218,12 @@ def _get_daily_total_interest(input_data: Input) -> float:
     return input_data.loan_amount * _get_interest_rate(input_data)
 
 
-def _get_days_since_start(start_date: date, end_date: date) -> int:
-    return (date.today() - start_date).days
+def _get_days_since_start(input_data: Input) -> int:
+    return (date.today() - input_data.start_date).days
+
+
+def _get_total_loan_days(input_data: Input) -> int:
+    return (input_data.end_date - input_data.start_date).days
 
 
 def _get_total_interest(daily_total_interest: float, total_days: int) -> float:
