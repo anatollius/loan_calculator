@@ -23,11 +23,11 @@ class Output(NamedTuple):
 
     def __str__(self):
         return f"""
-    Daily Interest Amount without margin: {self.loan_currency} {self.daily_base_interest}
-    Daily Interest Amount Accrued: {self.loan_currency} {self.daily_total_interest}
+    Daily Interest Amount without margin: {self.loan_currency} {self.daily_base_interest:.2f}
+    Daily Interest Amount Accrued: {self.loan_currency} {self.daily_total_interest:.2f}
     Accrual Date: {self.accrual_date.isoformat()}
     Number of Days elapsed since the start date of the loan: {self.days_since_start}
-    Total Interest: {self.loan_currency} {self.total_interest}
+    Total Interest: {self.loan_currency} {self.total_interest:.2f}
 """
 
 
@@ -71,7 +71,7 @@ def _parse_command():
     }
 
     while True:
-        command = input("What would you like to do? [new, edit, exit] ")
+        command = input("What would you like to do? [new, edit, exit]: ")
         command = command.strip().lower()
 
         if command in commands:
@@ -87,7 +87,7 @@ def _handle_new_input():
     end_date = _get_user_value(
         lambda: date.fromisoformat(input("End date [YYYY-MM-DD]: "))
     )
-    loan_amount = _get_user_value(lambda: float(input("Loan amount (decimal): ")))
+    loan_amount = _get_user_value(lambda: float(input("Loan amount: ")))
     loan_currency = _get_user_value(lambda: _get_user_currency())
     base_interest_rate = _get_user_value(lambda: float(input("Base interest rate: ")))
     margin = _get_user_value(lambda: float(input("Margin: ")))
@@ -149,7 +149,7 @@ def _handle_exit() -> None:
     valid_responses = ["y", "n"]
 
     while response not in valid_responses:
-        response = input("Would you like to save your requests? [y/n]: ")
+        response = input("Would you like to save your requests? [y, n]: ")
         response = response.strip().lower()
 
         if response not in valid_responses:
@@ -194,7 +194,7 @@ def _calculate_output(input_data: Input) -> Output:
     daily_total_interest = _get_daily_total_interest(input_data)
     days_since_start = _get_days_since_start(input_data)
     total_days = _get_total_loan_days(input_data)
-    total_interest = _get_total_interest(daily_total_interest, total_days)
+    total_interest = _get_total_interest(input_data)
 
     return Output(
         daily_base_interest=daily_base_interest,
@@ -211,11 +211,11 @@ def _get_interest_rate(input_data: Input) -> float:
 
 
 def _get_daily_base_interest(input_data: Input) -> float:
-    return input_data.loan_amount * input_data.base_interest_rate / 100
+    return (input_data.loan_amount * input_data.base_interest_rate / 100) / 365
 
 
 def _get_daily_total_interest(input_data: Input) -> float:
-    return input_data.loan_amount * _get_interest_rate(input_data)
+    return (input_data.loan_amount * _get_interest_rate(input_data)) / 356
 
 
 def _get_days_since_start(input_data: Input) -> int:
@@ -226,8 +226,12 @@ def _get_total_loan_days(input_data: Input) -> int:
     return (input_data.end_date - input_data.start_date).days
 
 
-def _get_total_interest(daily_total_interest: float, total_days: int) -> float:
-    return daily_total_interest * total_days
+def _get_total_interest(input_data: Input) -> float:
+    return (
+        input_data.loan_amount
+        * _get_interest_rate(input_data)
+        * (_get_total_loan_days(input_data) / 365)
+    )
 
 
 def _save_to_file():
